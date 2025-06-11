@@ -7,6 +7,7 @@ import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 
 public class TcpServer implements Runnable {
     private final int port;
@@ -221,16 +222,20 @@ public class TcpServer implements Runnable {
 
         writeVarInt(buffer, 0x02);
 
-        writeString(buffer, "00000000-0000-0000-0000-000000000000");
+        UUID uuid = UUID.nameUUIDFromBytes(("OfflinePlayer:" + username).getBytes(StandardCharsets.UTF_8));
+        buffer.write(longToBytes(uuid.getMostSignificantBits()));
+        buffer.write(longToBytes(uuid.getLeastSignificantBits()));
+
         writeString(buffer, username);
 
-        byte[] packetData = buffer.toByteArray();
+        writeVarInt(buffer, 0);
 
+        byte[] packetData = buffer.toByteArray();
         writeVarInt(out, packetData.length);
         out.write(packetData);
         out.flush();
-
     }
+
 
     // Writing helpers
 
@@ -250,5 +255,14 @@ public class TcpServer implements Runnable {
         byte[] bytes = str.getBytes(StandardCharsets.UTF_8);
         writeVarInt(out, bytes.length);
         out.write(bytes);
+    }
+
+    private static byte[] longToBytes(long value) {
+        byte[] bytes = new byte[8];
+        for (int i = 7; i >= 0; i--) {
+            bytes[i] = (byte) (value & 0xFF);
+            value >>= 8;
+        }
+        return bytes;
     }
 }
