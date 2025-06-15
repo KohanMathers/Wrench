@@ -66,7 +66,7 @@ public class TcpServer {
 
             ChannelFuture f = b.bind(port).sync();
             serverChannel = f.channel();
-            System.out.println("Netty server is listening on port " + port);
+            System.out.println("Server is listening on port " + port);
             
             f.channel().closeFuture().sync();
         } finally {
@@ -158,9 +158,7 @@ public class TcpServer {
             String serverAddress = readString(packet);
             int serverPort = packet.readUnsignedShort();
             int nextState = readVarInt(packet);
-            
-            System.out.println("Handshake: protocol=" + protocolVersion + ", address=" + serverAddress + 
-                             ", port=" + serverPort + ", nextState=" + nextState);
+            discard(protocolVersion, serverAddress, serverPort, nextState);
             
             switch (nextState) {
                 case 1 -> ctx.channel().attr(STATE_KEY).set(ConnectionState.STATUS);
@@ -197,7 +195,6 @@ public class TcpServer {
                     ctx.channel().attr(STATE_KEY).set(ConnectionState.CONFIGURATION);
                 }
                 case 0x03 -> {
-                    System.out.println("Login acknowledged, sending brand");
                     ctx.channel().attr(STATE_KEY).set(ConnectionState.CONFIGURATION);
                     sendCustomPayload(ctx, "minecraft:brand", "Wrench".getBytes(StandardCharsets.UTF_8));
                 }
@@ -220,9 +217,8 @@ public class TcpServer {
                     boolean textFiltering = packet.readBoolean();
                     boolean serverListings = packet.readBoolean();
                     int particleStatus = readVarInt(packet);
-                    discard(chatMode, chatColors, skinParts, mainHand, textFiltering, serverListings, particleStatus);
+                    discard(locale, viewDistance, chatMode, chatColors, skinParts, mainHand, textFiltering, serverListings, particleStatus);
 
-                    System.out.println("Client info received: " + locale + ", view distance: " + viewDistance);
                     sendFinishConfiguration(ctx);
                 }
                 case 0x02 -> {
@@ -231,7 +227,7 @@ public class TcpServer {
                     if (remainingBytes > 0) {
                         byte[] data = new byte[remainingBytes];
                         packet.readBytes(data);
-                        System.out.println("Plugin message received: " + channel + " (" + remainingBytes + " bytes)");
+                        discard(channel);
                     }
                 }
                 case 0x47 -> {
@@ -242,14 +238,11 @@ public class TcpServer {
                         
                         String dataString = new String(allData, StandardCharsets.UTF_8);
                         if (dataString.contains("minecraft:brand")) {
-                            System.out.println("Client brand packet received");
                             int brandIndex = dataString.indexOf("minecraft:brand");
                             if (brandIndex >= 0 && brandIndex + 20 < dataString.length()) {
                                 String brandArea = dataString.substring(brandIndex, Math.min(brandIndex + 50, dataString.length()));
-                                System.out.println("Brand area: " + brandArea.replaceAll("[\\x00-\\x1F\\x7F-\\x9F]", "?"));
+                                discard(brandArea);
                             }
-                        } else {
-                            System.out.println("Configuration packet 0x47 received (" + remainingBytes + " bytes)");
                         }
                     } catch (Exception e) {
                         System.out.println("Error parsing configuration packet 0x47: " + e.getMessage());
