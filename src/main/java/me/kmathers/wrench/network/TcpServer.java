@@ -31,6 +31,7 @@ public class TcpServer {
     private static final int SEGMENT_BITS = 0x7F;
     private static final int CONTINUE_BIT = 0x80;
     private static final AttributeKey<ConnectionState> STATE_KEY = AttributeKey.valueOf("state");
+    private static final AttributeKey<UUID> UUID_KEY = AttributeKey.valueOf("uuid");
 
     enum ConnectionState {
         HANDSHAKE,
@@ -190,7 +191,12 @@ public class TcpServer {
             switch (packetId) {
                 case 0x00 -> {
                     String username = readString(packet);
-                    System.out.println("Login start: " + username);
+                    UUID uuid = generateOfflineUUID(username);
+
+                    System.out.println("Login start: " + username + " with UUID " + uuid);
+
+                    ctx.channel().attr(UUID_KEY).set(uuid);
+
                     sendLoginSuccess(ctx, username);
                     ctx.channel().attr(STATE_KEY).set(ConnectionState.CONFIGURATION);
                 }
@@ -204,6 +210,7 @@ public class TcpServer {
                 }
             }
         }
+
 
         private void handleConfiguration(ChannelHandlerContext ctx, ByteBuf packet, int packetId) {
             switch (packetId) {
@@ -428,5 +435,10 @@ public class TcpServer {
     @SuppressWarnings("unused")
     private static void discard(Object... unused) {
         // Intentionally empty method to discard unused variables, fixes "___ is never used" warnings
+    }
+
+    public static UUID generateOfflineUUID(String username) {
+    String offlinePlayerNamespace = "OfflinePlayer:" + username;
+    return UUID.nameUUIDFromBytes(offlinePlayerNamespace.getBytes(StandardCharsets.UTF_8));
     }
 }
