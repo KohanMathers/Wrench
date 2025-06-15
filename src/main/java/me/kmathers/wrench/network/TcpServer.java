@@ -193,7 +193,7 @@ public class TcpServer {
                     String username = readString(packet);
                     UUID uuid = generateOfflineUUID(username);
 
-                    System.out.println("Login start: " + username + " with UUID " + uuid);
+                    System.out.println("Login start >> " + username + " with UUID " + uuid);
 
                     ctx.channel().attr(UUID_KEY).set(uuid);
 
