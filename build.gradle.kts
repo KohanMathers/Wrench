@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "me.kmathers.wrench"
-version = "0.3.8"
+version = "0.4.0"
 
 java {
     toolchain.languageVersion.set(JavaLanguageVersion.of(21))
@@ -16,4 +16,8 @@ application {
 
 repositories {
     mavenCentral()
+}
+
+dependencies {
+    implementation("io.netty:netty-common:4.1.107.Final")
 }
