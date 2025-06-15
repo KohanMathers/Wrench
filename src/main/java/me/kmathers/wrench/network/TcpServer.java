@@ -33,7 +33,7 @@ public class TcpServer {
         PLAY
     }
 
-    public NettyTcpServer(int port) {
+    public TcpServer(int port) {
         this.port = port;
     }
 

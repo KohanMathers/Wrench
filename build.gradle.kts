@@ -19,5 +19,5 @@ repositories {
 }
 
 dependencies {
-    implementation("io.netty:netty-common:4.1.107.Final")
+    implementation("io.netty:netty-all:4.1.107.Final")
 }
