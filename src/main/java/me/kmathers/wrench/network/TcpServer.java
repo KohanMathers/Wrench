@@ -1,19 +1,26 @@
 package me.kmathers.wrench.network;
 
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.UUID;
+
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.netty.channel.*;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.ChannelPipeline;
+import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.codec.MessageToByteEncoder;
 import io.netty.util.AttributeKey;
-
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.UUID;
 
 public class TcpServer {
     private final int port;
@@ -213,7 +220,8 @@ public class TcpServer {
                     boolean textFiltering = packet.readBoolean();
                     boolean serverListings = packet.readBoolean();
                     int particleStatus = readVarInt(packet);
-                    
+                    discard(chatMode, chatColors, skinParts, mainHand, textFiltering, serverListings, particleStatus);
+
                     System.out.println("Client info received: " + locale + ", view distance: " + viewDistance);
                     sendFinishConfiguration(ctx);
                 }
@@ -262,7 +270,8 @@ public class TcpServer {
 
         private void handlePlay(ChannelHandlerContext ctx, ByteBuf packet, int packetId) {
             System.out.println("PLAY packet received: 0x" + String.format("%02X", packetId));
-            // Handle play packets here
+            // Handle play packets here, for now discard packet
+            discard(packet, ctx);
         }
 
         private void debugPacket(ChannelHandlerContext ctx, ByteBuf packet, int packetId) {
@@ -420,5 +429,11 @@ public class TcpServer {
         byte[] bytes = str.getBytes(StandardCharsets.UTF_8);
         writeVarInt(buf, bytes.length);
         buf.writeBytes(bytes);
+    }
+
+    // Extra helper methods
+    @SuppressWarnings("unused")
+    private static void discard(Object... unused) {
+        // Intentionally empty method to discard unused variables, fixes "___ is never used" warnings
     }
 }
