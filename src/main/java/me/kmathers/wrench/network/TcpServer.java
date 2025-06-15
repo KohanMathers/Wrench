@@ -19,7 +19,9 @@ public class TcpServer implements Runnable {
     enum ConnectionState {
         HANDSHAKE,
         STATUS,
-        LOGIN
+        LOGIN,
+        CONFIGURATION,
+        PLAY
     }
 
     public TcpServer(int port) {
@@ -113,13 +115,79 @@ public class TcpServer implements Runnable {
                         }
                     }
                     case LOGIN -> {
-                        if (packetId == 0x00) {
+                    switch (packetId) {
+                        case 0x00 -> {
                             String username = readString(in);
                             sendLoginSuccess(out, username);
-                            break OUTER;
-                        } else {
+                            state = ConnectionState.CONFIGURATION;
+                        }
+                        case 0x03 -> {
+                            state = ConnectionState.CONFIGURATION;
+                            sendCustomPayload(out, "minecraft:brand", "Wrench".getBytes(StandardCharsets.UTF_8));
+                        }
+                        default -> {
                             System.out.println("Unknown LOGIN packet ID: " + packetId);
                             break OUTER;
+                        }
+                    }
+                    }
+                    case CONFIGURATION -> {
+                        switch (packetId) {
+                            case 0x00 -> {
+                                String locale = readString(in);
+                                int viewDistance = in.read();
+                                int chatMode = readVarInt(in);
+                                boolean chatColors = in.read() != 0;
+                                int skinParts = in.read();
+                                int mainHand = readVarInt(in);
+                                boolean textFiltering = in.read() != 0;
+                                boolean serverListings = in.read() != 0;
+                                int particleStatus = readVarInt(in);
+                                discard(chatMode, chatColors, skinParts, mainHand, textFiltering, serverListings, particleStatus);
+                                System.out.println("Client info received: " + locale + ", view distance: " + viewDistance);
+                                sendFinishConfiguration(out);
+                            }
+                            case 0x02 -> {
+                                String channel = readString(in);
+                                int remainingBytes = packetLength - 1 - getVarIntSize(packetId) - getStringSize(channel);
+                                if (remainingBytes > 0) {
+                                    byte[] data = new byte[remainingBytes];
+                                    in.readNBytes(data, 0, remainingBytes);
+                                    System.out.println("Plugin message received: " + channel + " (" + remainingBytes + " bytes)");
+                                }
+                            }
+                            case 0x47 -> {
+                                try {
+                                    int remainingBytes = packetLength - 1 - getVarIntSize(packetId);
+                                    byte[] allData = new byte[remainingBytes];
+                                    in.readNBytes(allData, 0, remainingBytes);
+                                    
+                                    String dataString = new String(allData, StandardCharsets.UTF_8);
+                                    if (dataString.contains("minecraft:brand")) {
+                                        System.out.println("Client brand packet received");
+                                        int brandIndex = dataString.indexOf("minecraft:brand");
+                                        if (brandIndex >= 0 && brandIndex + 20 < dataString.length()) {
+                                            String brandArea = dataString.substring(brandIndex, Math.min(brandIndex + 50, dataString.length()));
+                                            System.out.println("Brand area: " + brandArea.replaceAll("[\\x00-\\x1F\\x7F-\\x9F]", "?"));
+                                        }
+                                    } else {
+                                        System.out.println("Configuration packet 0x47 received (" + remainingBytes + " bytes)");
+                                    }
+                                                                        
+                                } catch (Exception e) {
+                                    System.out.println("Error parsing configuration packet 0x47: " + e.getMessage());
+                                }
+                            }
+                            case 0x03 -> {
+                                System.out.println("Configuration acknowledged, switching to PLAY state");
+                                state = ConnectionState.PLAY;
+                                break OUTER;
+                            }
+                            default -> {
+                                System.out.println("Unknown CONFIGURATION packet ID: " + packetId);
+                                debugPacket(in, packetId, packetLength, state);
+                                break OUTER;
+                            }
                         }
                     }
                     default -> {
@@ -163,6 +231,59 @@ public class TcpServer implements Runnable {
         int byte2 = in.read();
         if (byte1 == -1 || byte2 == -1) throw new IOException("End of stream reached");
         return (byte1 << 8) | byte2;
+    }
+
+    private void debugPacket(InputStream in, int packetId, int packetLength, ConnectionState state) throws IOException {
+        System.out.println("=== DEBUG PACKET ===");
+        System.out.println("State: " + state);
+        System.out.println("Packet ID: 0x" + String.format("%02X", packetId));
+        System.out.println("Packet Length: " + packetLength);
+        
+        int remainingBytes = packetLength - getVarIntSize(packetId);
+        if (remainingBytes > 0) {
+            byte[] remainingData = new byte[remainingBytes];
+            in.readNBytes(remainingData, 0, remainingBytes);
+            
+            System.out.println("Raw bytes (" + remainingBytes + " bytes):");
+            StringBuilder hexBuilder = new StringBuilder();
+            StringBuilder asciiBuilder = new StringBuilder();
+            
+            for (int i = 0; i < remainingData.length; i++) {
+                if (i % 16 == 0 && i > 0) {
+                    System.out.println(hexBuilder.toString() + " | " + asciiBuilder.toString());
+                    hexBuilder.setLength(0);
+                    asciiBuilder.setLength(0);
+                }
+                
+                hexBuilder.append(String.format("%02X ", remainingData[i] & 0xFF));
+                char c = (char) (remainingData[i] & 0xFF);
+                asciiBuilder.append(c >= 32 && c <= 126 ? c : '.');
+            }
+            
+            if (hexBuilder.length() > 0) {
+                while (hexBuilder.length() < 48) hexBuilder.append(" ");
+                System.out.println(hexBuilder.toString() + " | " + asciiBuilder.toString());
+            }
+        }
+        System.out.println("==================");
+    }
+
+    private int getVarIntSize(int value) {
+        int size = 0;
+        while (true) {
+            if ((value & ~SEGMENT_BITS) == 0) {
+                size++;
+                return size;
+            } else {
+                size++;
+                value >>>= 7;
+            }
+        }
+    }
+
+    private int getStringSize(String str) {
+        byte[] bytes = str.getBytes(StandardCharsets.UTF_8);
+        return getVarIntSize(bytes.length) + bytes.length;
     }
 
     // Sending packets
@@ -236,7 +357,32 @@ public class TcpServer implements Runnable {
         out.flush();
     }
 
+    private void sendCustomPayload(OutputStream out, String channel, byte[] data) throws IOException {
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        
+        writeVarInt(buffer, 0x01);
+        writeString(buffer, channel);
+        buffer.write(data);
+        
+        byte[] packetData = buffer.toByteArray();
+        writeVarInt(out, packetData.length);
+        out.write(packetData);
+        out.flush();
+    }
 
+    private void sendFinishConfiguration(OutputStream out) throws IOException {
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        
+        writeVarInt(buffer, 0x03); // Finish Configuration packet ID
+        // No additional data needed
+        
+        byte[] packetData = buffer.toByteArray();
+        writeVarInt(out, packetData.length);
+        out.write(packetData);
+        out.flush();
+        
+        System.out.println("Sent Finish Configuration packet");
+    }
     // Writing helpers
 
     public static void writeVarInt(OutputStream out, int value) throws IOException {
