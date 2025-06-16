@@ -240,6 +240,7 @@ public class TcpServer {
                 case 0x03 -> {
                     System.out.println("Configuration acknowledged, switching to PLAY state");
                     ctx.channel().attr(STATE_KEY).set(ConnectionState.PLAY);
+                    ctx.channel().attr(CONFIG_SKIP_PACKETS).set(2);
                 }
                 default -> {
                     System.out.println("Unknown CONFIGURATION packet ID: " + packetId);
@@ -255,7 +256,6 @@ public class TcpServer {
             if (skip != null && skip > 0) {
                 ctx.channel().attr(CONFIG_SKIP_PACKETS).set(skip - 1);
                 discard(packet, ctx);
-                System.out.println("Skipping PLAY packet 0x" + String.format("%02X", packetId) + " (" + (skip - 1) + " left)");
                 return;
             }
             System.out.println("PLAY packet received: 0x" + String.format("%02X", packetId));

@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "me.kmathers.wrench"
-version = "0.4.3"
+version = "0.4.5"
 
 java {
     toolchain.languageVersion.set(JavaLanguageVersion.of(21))
