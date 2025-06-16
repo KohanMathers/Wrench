@@ -32,6 +32,7 @@ public class TcpServer {
     private static final int CONTINUE_BIT = 0x80;
     private static final AttributeKey<ConnectionState> STATE_KEY = AttributeKey.valueOf("state");
     private static final AttributeKey<UUID> UUID_KEY = AttributeKey.valueOf("uuid");
+    private static final AttributeKey<Integer> CONFIG_SKIP_PACKETS = AttributeKey.valueOf("configSkipPackets");
 
     enum ConnectionState {
         HANDSHAKE,
@@ -118,8 +119,7 @@ public class TcpServer {
     }
 
     // Main packet handler
-    public static class MinecraftServerHandler extends ChannelInboundHandlerAdapter {
-        
+    public static class MinecraftServerHandler extends ChannelInboundHandlerAdapter {        
         @Override
         public void channelActive(ChannelHandlerContext ctx) {
             ctx.channel().attr(STATE_KEY).set(ConnectionState.HANDSHAKE);
@@ -258,10 +258,10 @@ public class TcpServer {
                 case 0x03 -> {
                     System.out.println("Configuration acknowledged, switching to PLAY state");
                     ctx.channel().attr(STATE_KEY).set(ConnectionState.PLAY);
-                    // Don't close here, stay connected for PLAY state
                 }
                 default -> {
                     System.out.println("Unknown CONFIGURATION packet ID: " + packetId);
+                    ctx.channel().attr(CONFIG_SKIP_PACKETS).set(2);
                     debugPacket(ctx, packet, packetId);
                     ctx.close();
                 }
@@ -269,8 +269,15 @@ public class TcpServer {
         }
 
         private void handlePlay(ChannelHandlerContext ctx, ByteBuf packet, int packetId) {
+            Integer skip = ctx.channel().attr(CONFIG_SKIP_PACKETS).get();
+            if (skip != null && skip > 0) {
+                ctx.channel().attr(CONFIG_SKIP_PACKETS).set(skip - 1);
+                discard(packet, ctx);
+                System.out.println("Skipping PLAY packet 0x" + String.format("%02X", packetId) + " (" + (skip - 1) + " left)");
+                return;
+            }
             System.out.println("PLAY packet received: 0x" + String.format("%02X", packetId));
-            // Handle play packets here, for now discard packet
+            debugPacket(ctx, packet, packetId);
             discard(packet, ctx);
         }
 
