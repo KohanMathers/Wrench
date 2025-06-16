@@ -258,6 +258,7 @@ public class TcpServer {
                 discard(packet, ctx);
                 return;
             }
+            sendSynchronizePlayerPosition(ctx, 1, 0.0, 64.0, 0.0, 0.0, 0.0, 0.0, 0.0f, 0.0f);
             System.out.println("PLAY packet received: 0x" + String.format("%02X", packetId));
             debugPacket(ctx, packet, packetId);
             discard(packet, ctx);
@@ -373,6 +374,21 @@ public class TcpServer {
             writeVarInt(packet, 0x03);
             ctx.writeAndFlush(packet);
             System.out.println("Sent Finish Configuration packet");
+        }
+
+        private void sendSynchronizePlayerPosition(ChannelHandlerContext ctx, int teleportID, double x, double y, double z, double velX, double velY, double velZ, float yaw, float pitch) {
+            ByteBuf packet = Unpooled.buffer();
+            writeVarInt(packet, 0x41);
+            writeVarInt(packet, teleportID);
+            packet.writeDouble(x);
+            packet.writeDouble(y);
+            packet.writeDouble(z);
+            packet.writeDouble(velX);
+            packet.writeDouble(velY);
+            packet.writeDouble(velZ);
+            packet.writeFloat(yaw);
+            packet.writeFloat(pitch);
+            ctx.writeAndFlush(packet);
         }
     }
 
