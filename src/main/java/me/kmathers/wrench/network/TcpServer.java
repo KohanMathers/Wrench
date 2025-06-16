@@ -237,24 +237,6 @@ public class TcpServer {
                         discard(channel);
                     }
                 }
-                case 0x47 -> {
-                    try {
-                        int remainingBytes = packet.readableBytes();
-                        byte[] allData = new byte[remainingBytes];
-                        packet.readBytes(allData);
-                        
-                        String dataString = new String(allData, StandardCharsets.UTF_8);
-                        if (dataString.contains("minecraft:brand")) {
-                            int brandIndex = dataString.indexOf("minecraft:brand");
-                            if (brandIndex >= 0 && brandIndex + 20 < dataString.length()) {
-                                String brandArea = dataString.substring(brandIndex, Math.min(brandIndex + 50, dataString.length()));
-                                discard(brandArea);
-                            }
-                        }
-                    } catch (Exception e) {
-                        System.out.println("Error parsing configuration packet 0x47: " + e.getMessage());
-                    }
-                }
                 case 0x03 -> {
                     System.out.println("Configuration acknowledged, switching to PLAY state");
                     ctx.channel().attr(STATE_KEY).set(ConnectionState.PLAY);
