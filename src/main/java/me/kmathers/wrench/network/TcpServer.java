@@ -68,7 +68,7 @@ public class TcpServer {
 
             ChannelFuture f = b.bind(port).sync();
             serverChannel = f.channel();
-            System.out.println("Server is listening on port " + port);
+            logToConsole("INFO", "Server is listening on port " + port);
             
             f.channel().closeFuture().sync();
         } finally {
@@ -123,7 +123,7 @@ public class TcpServer {
         @Override
         public void channelActive(ChannelHandlerContext ctx) {
             ctx.channel().attr(STATE_KEY).set(ConnectionState.HANDSHAKE);
-            System.out.println("Client connected: " + ctx.channel().remoteAddress());
+            logToConsole("DEBUG", "Client connected: " + ctx.channel().remoteAddress());
         }
 
         @Override
@@ -141,7 +141,7 @@ public class TcpServer {
                     case PLAY -> handlePlay(ctx, packet, packetId);
                 }
             } catch (Exception e) {
-                System.out.println("Error handling packet: " + e.getMessage());
+                logToConsole("ERROR", "Error handling packet: " + e.getMessage());
                 ctx.close();
             } finally {
                 packet.release();
@@ -150,7 +150,7 @@ public class TcpServer {
 
         private void handleHandshake(ChannelHandlerContext ctx, ByteBuf packet, int packetId) {
             if (packetId != 0x00) {
-                System.out.println("Expected handshake packet but got: " + packetId);
+                logToConsole("ERROR", "Expected handshake packet but got: " + packetId);
                 ctx.close();
                 return;
             }
@@ -165,7 +165,7 @@ public class TcpServer {
                 case 1 -> ctx.channel().attr(STATE_KEY).set(ConnectionState.STATUS);
                 case 2 -> ctx.channel().attr(STATE_KEY).set(ConnectionState.LOGIN);
                 default -> {
-                    System.out.println("Invalid nextState: " + nextState);
+                    logToConsole("ERROR", "Invalid nextState: " + nextState);
                     ctx.close();
                 }
             }
@@ -181,7 +181,7 @@ public class TcpServer {
                     ctx.close();
                 }
                 default -> {
-                    System.out.println("Unknown STATUS packet ID: " + packetId);
+                    logToConsole("ERROR", "Unknown STATUS packet ID: " + packetId);
                     ctx.close();
                 }
             }
@@ -193,7 +193,7 @@ public class TcpServer {
                     String username = readString(packet);
                     UUID uuid = generateOfflineUUID(username);
 
-                    System.out.println("Login start >> " + username + " with UUID " + uuid);
+                    logToConsole("INFO", "Login start: " + username + " with UUID " + uuid);
 
                     ctx.channel().attr(UUID_KEY).set(uuid);
 
@@ -205,7 +205,7 @@ public class TcpServer {
                     sendCustomPayload(ctx, "minecraft:brand", "Wrench".getBytes(StandardCharsets.UTF_8));
                 }
                 default -> {
-                    System.out.println("Unknown LOGIN packet ID: " + packetId);
+                    logToConsole("ERROR", "Unknown LOGIN packet ID: " + packetId);
                     ctx.close();
                 }
             }
@@ -238,12 +238,12 @@ public class TcpServer {
                     }
                 }
                 case 0x03 -> {
-                    System.out.println("Configuration acknowledged, switching to PLAY state");
+                    logToConsole("DEBUG", "Configuration acknowledged, switching to PLAY state");
                     ctx.channel().attr(STATE_KEY).set(ConnectionState.PLAY);
                     ctx.channel().attr(CONFIG_SKIP_PACKETS).set(2);
                 }
                 default -> {
-                    System.out.println("Unknown CONFIGURATION packet ID: " + packetId);
+                    logToConsole("ERROR", "Unknown CONFIGURATION packet ID: " + packetId);
                     ctx.channel().attr(CONFIG_SKIP_PACKETS).set(2);
                     debugPacket(ctx, packet, packetId);
                     ctx.close();
@@ -259,7 +259,7 @@ public class TcpServer {
                 return;
             }
             sendSynchronizePlayerPosition(ctx, 1, 0.0, 64.0, 0.0, 0.0, 0.0, 0.0, 0.0f, 0.0f);
-            System.out.println("PLAY packet received: 0x" + String.format("%02X", packetId));
+            logToConsole("DEBUG", "PLAY packet received: 0x" + String.format("%02X", packetId));
             debugPacket(ctx, packet, packetId);
             discard(packet, ctx);
         }
@@ -301,13 +301,13 @@ public class TcpServer {
 
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-            System.out.println("Client connection error: " + cause.getMessage());
+            logToConsole("ERROR", "Client connection error: " + cause.getMessage());
             ctx.close();
         }
 
         @Override
         public void channelInactive(ChannelHandlerContext ctx) {
-            System.out.println("Client disconnected: " + ctx.channel().remoteAddress());
+            logToConsole("INFO", "Client disconnected: " + ctx.channel().remoteAddress());
         }
 
         // Packet sending methods
@@ -445,5 +445,10 @@ public class TcpServer {
     public static UUID generateOfflineUUID(String username) {
     String offlinePlayerNamespace = "OfflinePlayer:" + username;
     return UUID.nameUUIDFromBytes(offlinePlayerNamespace.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static void logToConsole(String level, String message) {
+        System.out.println("[LOG-LEVEL-WILL-GO-HERE]: " + message);
+        discard(level);
     }
 }
