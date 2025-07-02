@@ -11,6 +11,7 @@ repositories {
 }
 
 dependencies {
+    implementation("org.slf4j:slf4j-simple:2.0.17")
     implementation("net.minestom:minestom-snapshots:4fe2993057")
 }
 
