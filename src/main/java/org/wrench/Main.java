@@ -1,5 +1,10 @@
 package org.wrench;
 
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+
+import org.wrench.logger.ServerChatMessageListener;
+
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Player;
@@ -29,10 +34,27 @@ public class Main {
             final Player player = event.getPlayer();
             event.setSpawningInstance(instanceContainer);
             player.setRespawnPoint(new Pos(0, 42, 0));
+            
+            log("info", player.getUsername() + " joined the game");
         });
+
+        ServerChatMessageListener.register(globalEventHandler);
 
         MojangAuth.init();
 
         minecraftServer.start("0.0.0.0", 25565);
+    }
+
+
+    public static void log(String level, String message) {
+        String time = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+        String formatted = String.format("[%s %s] %s", time, level.toUpperCase(), message);
+
+        switch (level.toLowerCase()) {
+            case "info" -> System.out.println(formatted);
+            case "warn" -> System.out.println(formatted);
+            case "error" -> System.err.println(formatted);
+            default -> System.out.println(formatted);
+        }
     }
 }
