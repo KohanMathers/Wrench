@@ -1,7 +1,9 @@
 package org.wrench.logger;
 
+import net.kyori.adventure.text.Component;
 import net.minestom.server.event.GlobalEventHandler;
 import net.minestom.server.event.player.PlayerChatEvent;
+import net.minestom.server.event.player.PlayerDeathEvent;
 
 public final class ServerChatMessageListener {
 
@@ -10,6 +12,12 @@ public final class ServerChatMessageListener {
             String message = event.getRawMessage();
             String playerName = event.getPlayer().getUsername();
             org.wrench.Main.log("info", "<" + playerName + "> " + message);
+        });
+
+        handler.addListener(PlayerDeathEvent.class, event -> {
+            String playerName = event.getPlayer().getUsername();
+            Component deathMessage = event.getDeathText();
+            org.wrench.Main.log("info", playerName + deathMessage);
         });
     }
 }
