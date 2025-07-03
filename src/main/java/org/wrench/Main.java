@@ -3,7 +3,7 @@ package org.wrench;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 
-import org.wrench.logger.ServerChatMessageListener;
+import org.wrench.listener.ServerChatMessageListener;
 
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
