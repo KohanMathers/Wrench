@@ -3,10 +3,11 @@ package org.wrench;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 
-import org.wrench.listener.ServerChatMessageListener;
+import org.wrench.listener.PlayerEventListener;
 
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
+import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.GlobalEventHandler;
 import net.minestom.server.event.player.AsyncPlayerConfigurationEvent;
@@ -34,11 +35,12 @@ public class Main {
             final Player player = event.getPlayer();
             event.setSpawningInstance(instanceContainer);
             player.setRespawnPoint(new Pos(0, 42, 0));
-            
+            player.setGameMode(GameMode.CREATIVE);
+
             log("info", player.getUsername() + " joined the game");
         });
 
-        ServerChatMessageListener.register(globalEventHandler);
+        PlayerEventListener.register(globalEventHandler);
 
         MojangAuth.init();
 
