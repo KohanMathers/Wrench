@@ -3,7 +3,7 @@ package org.wrench;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 
-import org.wrench.commands.VersionCommand;
+import org.wrench.commands.CommandRegistry;
 import org.wrench.listener.PlayerEventListener;
 
 import net.minestom.server.MinecraftServer;
@@ -43,13 +43,12 @@ public class Main {
 
         PlayerEventListener.register(globalEventHandler);
 
-        MinecraftServer.getCommandManager().register(new VersionCommand());
+        CommandRegistry.registerAll(MinecraftServer.getCommandManager());
 
         MojangAuth.init();
 
         minecraftServer.start("0.0.0.0", 25565);
     }
-
 
     public static void log(String level, String message) {
         String time = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));

@@ -1,4 +1,4 @@
-package org.wrench.commands;
+package org.wrench.commands.wrenchDefault;
 
 import net.minestom.server.command.builder.Command;
 
