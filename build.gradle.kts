@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "org.wrench"
-version = "1.0-SNAPSHOT"
+version = "1.0-DEV"
 
 repositories {
     mavenCentral()

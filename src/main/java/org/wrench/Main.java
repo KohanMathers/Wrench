@@ -3,6 +3,7 @@ package org.wrench;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 
+import org.wrench.commands.VersionCommand;
 import org.wrench.listener.PlayerEventListener;
 
 import net.minestom.server.MinecraftServer;
@@ -41,6 +42,8 @@ public class Main {
         });
 
         PlayerEventListener.register(globalEventHandler);
+
+        MinecraftServer.getCommandManager().register(new VersionCommand());
 
         MojangAuth.init();
 
