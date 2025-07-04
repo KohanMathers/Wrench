@@ -1,6 +1,7 @@
 package org.wrench.listener;
 
 import java.time.Duration;
+import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
 import net.kyori.adventure.text.Component;
@@ -10,6 +11,7 @@ import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.ItemEntity;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.GlobalEventHandler;
+import net.minestom.server.event.item.ItemDropEvent;
 import net.minestom.server.event.item.PickupItemEvent;
 import net.minestom.server.event.player.PlayerBlockBreakEvent;
 import net.minestom.server.event.player.PlayerChatEvent;
@@ -72,6 +74,34 @@ public final class PlayerEventListener {
             if(event.getLivingEntity() instanceof Player player) {
                 player.getInventory().addItemStack(itemStack);
             }
+        });
+
+        handler.addListener(ItemDropEvent.class, event -> {
+            var itemStack = event.getItemStack();
+            var player = event.getPlayer();
+            var playerPos = player.getPosition();
+            
+            var itemEntity = new ItemEntity(itemStack);
+            
+            var eyePos = playerPos.add(0, player.getEyeHeight() - 0.3, 0);
+            var direction = player.getPosition().direction();
+            var dropPos = eyePos.add(direction.mul(0.3));
+            
+            itemEntity.setInstance(event.getInstance(), dropPos);
+            
+            var random = new Random();
+            
+            var forwardVel = direction.mul(5);
+            
+            var randomX = (random.nextDouble() - 0.5) * 0.5;
+            var randomZ = (random.nextDouble() - 0.5) * 0.5;
+            
+            var upwardVel = 0.2 + random.nextDouble() * 0.1;
+            
+            var finalVelocity = forwardVel.add(randomX, upwardVel, randomZ);
+            itemEntity.setVelocity(finalVelocity);
+            
+            itemEntity.setPickupDelay(Duration.ofMillis(500));
         });
     }
 }
