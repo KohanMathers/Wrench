@@ -13,6 +13,10 @@ public class GamemodeCommand extends Command {
     public GamemodeCommand() {
         super("gamemode");
 
+        setDefaultExecutor((sender, context) -> {
+            sender.sendMessage(Component.text("Usage: /gamemode <gamemode> [target] ", NamedTextColor.RED));
+        });
+
         var gamemodeArg = ArgumentType.String("gamemode");
         gamemodeArg.setSuggestionCallback((sender, context, suggestion) -> {
             for (GameMode gm : GameMode.values()) {
@@ -26,7 +30,6 @@ public class GamemodeCommand extends Command {
                 suggestion.addEntry(new SuggestionEntry (player.getUsername()));
             }
         });
-
 
         addSyntax((sender, context) -> {
             if (!(sender instanceof Player)) {
