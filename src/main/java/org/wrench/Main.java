@@ -18,6 +18,11 @@ import net.minestom.server.instance.InstanceManager;
 import net.minestom.server.instance.LightingChunk;
 import net.minestom.server.instance.block.Block;
 
+import org.everbuild.blocksandstuff.fluids.MinestomFluids;
+import org.everbuild.blocksandstuff.blocks.BlockPlacementRuleRegistrations;
+import org.everbuild.blocksandstuff.blocks.BlockBehaviorRuleRegistrations;
+import org.everbuild.blocksandstuff.blocks.PlacedHandlerRegistration;
+
 public class Main {
     public static void main(String[] args) {
         MinecraftServer minecraftServer = MinecraftServer.init();
@@ -46,6 +51,12 @@ public class Main {
         CommandRegistry.registerAll(MinecraftServer.getCommandManager());
 
         MojangAuth.init();
+
+        BlockPlacementRuleRegistrations.registerDefault();
+        BlockBehaviorRuleRegistrations.registerDefault();
+        PlacedHandlerRegistration.registerDefault();
+        MinestomFluids.INSTANCE.enableFluids();
+        MinestomFluids.INSTANCE.enableVanillaFluids();
 
         minecraftServer.start("0.0.0.0", 25565);
     }
