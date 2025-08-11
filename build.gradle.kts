@@ -17,7 +17,7 @@ repositories {
 
 dependencies {
     implementation("org.slf4j:slf4j-simple:2.0.17")
-    implementation("net.minestom:minestom-snapshots:4fe2993057")
+    implementation("net.minestom:minestom:2025.07.08-1.21.5")
     implementation("org.jetbrains.kotlin:kotlin-stdlib")
     implementation("org.everbuild.blocksandstuff:blocksandstuff-fluids:1.2.0-SNAPSHOT")
     implementation("org.everbuild.blocksandstuff:blocksandstuff-blocks:1.2.0-SNAPSHOT")
